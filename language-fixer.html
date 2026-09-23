@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Language Fixer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+Arabic:wght@400;600&family=Noto+Sans+Bengali:wght@400;600&family=Noto+Sans+Devanagari:wght@400;600&family=Noto+Sans+JP:wght@400;600&family=Noto+Sans+SC:wght@400;600&family=Noto+Sans:wght@400;600&family=Spectral:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#15120e; --panel:#1d1811; --raised:#251f16; --hair:#3a3222;
+    --paper:#e7ddc8; --paper-dim:#a89a80;
+    --brass:#b8874f; --brass-bright:#d9a862;
+    --good:#6b7a5e; --bad:#a3543f;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:radial-gradient(ellipse at top left,#1c170f 0%, var(--ink) 60%);
+    color:var(--paper); font-family:'IBM Plex Mono',monospace; min-height:100vh;
+  }
+  .wrap{max-width:1040px;margin:0 auto;padding:28px 20px 70px;}
+  h1{font-family:'Spectral',serif;font-weight:600;font-size:1.7rem;margin:0 0 2px;color:var(--paper);}
+  .sub{font-size:0.72rem;letter-spacing:2px;text-transform:uppercase;color:var(--brass);margin-bottom:20px;}
+  .hint{color:var(--paper-dim);font-size:0.8rem;line-height:1.5;margin-bottom:18px;}
+  label{display:block;font-size:0.7rem;letter-spacing:1.2px;text-transform:uppercase;color:var(--paper-dim);margin-bottom:6px;}
+  textarea, input[type=text], input[type=password]{
+    width:100%;background:var(--panel);border:1px solid var(--hair);border-radius:5px;
+    color:var(--paper);padding:10px 12px;font-family:'IBM Plex Mono',monospace;font-size:0.85rem;line-height:1.6;
+  }
+  textarea{min-height:180px;resize:vertical;}
+  textarea.script-bn{font-family:'Noto Sans Bengali','IBM Plex Mono',monospace;}
+  textarea.script-hi{font-family:'Noto Sans Devanagari','IBM Plex Mono',monospace;}
+  textarea.script-ar{font-family:'Noto Sans Arabic','IBM Plex Mono',sans-serif;}
+  textarea.script-ru{font-family:'Noto Sans','IBM Plex Mono',monospace;}
+  textarea.script-zh{font-family:'Noto Sans SC','Noto Sans TC','IBM Plex Mono',sans-serif;}
+  textarea.script-ja{font-family:'Noto Sans JP','IBM Plex Mono',sans-serif;}
+  textarea:focus, input:focus{outline:none;border-color:var(--brass);}
+  button{
+    background:var(--brass);color:var(--ink);border:none;border-radius:4px;
+    padding:10px 18px;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:0.82rem;
+    cursor:pointer;margin-top:12px;
+  }
+  button:hover:not(:disabled){background:var(--brass-bright);}
+  button:disabled{opacity:0.5;cursor:default;}
+  button.secondary{background:var(--panel); color:var(--paper); border:1px solid var(--hair);}
+  button.secondary:hover:not(:disabled){border-color:var(--brass);color:var(--brass-bright);}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .section{margin-top:26px;}
+  .status{font-size:0.78rem;min-height:1.2em;margin-top:8px;color:var(--good);}
+  .status.error{color:var(--bad);}
+  .config-box{background:var(--raised);border:1px solid var(--hair);border-radius:6px;padding:16px 18px;margin-bottom:22px;}
+  .config-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media (max-width:640px){.config-grid{grid-template-columns:1fr;}.lang-toggle{grid-template-columns:repeat(2,minmax(0,1fr));}}
+  .field-note{color:var(--paper-dim);font-size:0.72rem;margin-top:4px;}
+  .toggle-key{background:none;border:none;color:var(--paper-dim);font-size:0.72rem;cursor:pointer;margin-top:4px;padding:0;text-decoration:underline;}
+  .lang-toggle{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:6px;}
+  .lang-btn{
+    width:100%;background:var(--panel);border:1px solid var(--hair);color:var(--paper-dim);
+    padding:9px;font-family:'IBM Plex Mono',monospace;font-size:0.8rem;font-weight:600;
+    cursor:pointer;border-radius:4px;margin-top:0;text-align:center;
+  }
+  .lang-btn.active{background:var(--brass);color:var(--ink);border-color:var(--brass);}
+  .file-row{display:flex;gap:8px;align-items:center;margin-top:6px;}
+  .output-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media (max-width:780px){.output-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Language Fixer</h1>
+  <div class="sub">Multilingual text correction — paste, correct, keep everything else untouched</div>
+  <div class="hint">
+    Runs through OpenRouter with your own key and whichever model you trust for the language you pick below.
+    When a line has an English translation in parentheses right after it, the original text (native script or
+    romanized) is treated as unreliable and completely replaced with a fresh translation of that English gloss —
+    not just spell-checked. Content with no gloss nearby gets corrected into proper script as a best effort.
+    Everything else in the passage — narration, English dialogue, formatting — is returned exactly as written.
+    You get both a native-script version and a romanized version back, since you can't always read one of them.
+  </div>
+
+  <div class="config-box">
+    <label>Language</label>
+    <div class="lang-toggle">
+      <button type="button" class="lang-btn active" id="btnBengali" data-lang="Bengali">Bengali</button>
+      <button type="button" class="lang-btn" id="btnHindi" data-lang="Hindi">Hindi</button>
+      <button type="button" class="lang-btn" data-lang="Arabic">Arabic</button>
+      <button type="button" class="lang-btn" data-lang="Spanish">Spanish</button>
+      <button type="button" class="lang-btn" data-lang="Hungarian">Hungarian</button>
+      <button type="button" class="lang-btn" data-lang="Russian">Russian</button>
+      <button type="button" class="lang-btn" data-lang="Mandarin">Mandarin</button>
+      <button type="button" class="lang-btn" data-lang="Japanese">Japanese</button>
+    </div>
+
+    <div class="config-grid" style="margin-top:16px">
+      <div>
+        <label for="apiKey">OpenRouter API key</label>
+        <input type="password" id="apiKey" placeholder="sk-or-v1-...">
+        <div class="file-row">
+          <button class="toggle-key" id="toggleKey" type="button">show</button>
+          <span style="color:var(--paper-dim);font-size:0.72rem;">·</span>
+          <button class="toggle-key" id="loadKeyBtn" type="button">load key from .txt</button>
+          <input type="file" id="keyFile" accept=".txt,text/plain" style="display:none">
+        </div>
+        <div class="field-note">
+          Keeps the key out of the HTML itself. Put your key in a small .txt in the same Drive folder as this
+          file, then use "load key from .txt" on whichever device you're on — no retyping, and the key never
+          has to live inside a file you might reshare.
+        </div>
+      </div>
+      <div>
+        <label for="model">Model</label>
+        <input type="text" id="model" placeholder="e.g. z-ai/glm-5.2, anthropic/claude-opus-4.5" value="z-ai/glm-5.2">
+        <div class="field-note">Any OpenRouter model slug. Use whichever model you trust most for this language.</div>
+      </div>
+    </div>
+  </div>
+
+  <label for="input">Text to fix</label>
+  <textarea id="input" placeholder="Paste the full passage here..."></textarea>
+
+  <div class="actions">
+    <button id="fixBtn">Fix Text</button>
+  </div>
+  <div class="status" id="status"></div>
+
+  <div class="section">
+    <div class="output-grid">
+      <div>
+        <label id="scriptLabel">Native script</label>
+        <textarea id="outputScript" class="script-bn" readonly placeholder="Native-script version will appear here."></textarea>
+      </div>
+      <div>
+        <label>Romanized</label>
+        <textarea id="outputRoman" readonly placeholder="Romanized version will appear here."></textarea>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="secondary" id="copyScriptBtn">Copy Native Script</button>
+      <button class="secondary" id="copyRomanBtn">Copy Romanized</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+
+let currentLang = 'Bengali';
+
+function scriptName(lang){
+  const scripts = {
+    Bengali: 'Bangla', Hindi: 'Devanagari', Arabic: 'Arabic',
+    Spanish: 'Latin', Hungarian: 'Latin', Russian: 'Cyrillic',
+    Mandarin: 'Simplified Chinese', Japanese: 'Japanese'
+  };
+  return scripts[lang] || 'Latin';
+}
+
+function buildSystemPrompt(lang){
+  const script = scriptName(lang);
+  const dialectNote = lang === 'Bengali'
+    ? `\n\nDialect: use the Bengali spoken in Kolkata, West Bengal, India. Do NOT use Bangladeshi Bengali — avoid its vocabulary, spelling conventions, and phrasing. This must read as West Bengal (Indian) Bengali specifically.`
+    : '';
+  return `You are a precise ${lang}-language correction tool embedded in a creative-writing workflow. You will receive a passage that is mostly English (narration, dialogue, formatting) but contains some ${lang} content — either in ${script} script, or written phonetically using Latin letters (romanized ${lang}).${dialectNote}
+
+Two cases, handled differently:
+
+CASE A — a ${lang}/romanized-${lang} line is immediately followed by an English translation in parentheses. In this case, DO NOT trust or preserve the original ${lang}/romanized text — it may already be a wrong or garbled translation. Instead, treat the English text in the parentheses as the single source of truth, and write a completely fresh, natural, grammatically correct ${lang} translation of that English meaning. Replace the original portion with this fresh translation. Leave the English gloss in the parentheses exactly as it was.
+
+CASE B — ${lang} or romanized ${lang} content appears with NO English gloss nearby to check against. Correct it as best you can: if romanized, convert it to proper ${script} script; if already in ${script} script, fix any spelling/grammar errors, preserving the intended meaning as closely as possible.
+
+In both cases, do NOT translate English text into ${lang} or vice versa beyond what's described above, and do NOT alter any English narration, dialogue, formatting, punctuation placement, quotation marks, line breaks, or structure — preserve those character-for-character.
+
+You must produce the corrected passage TWICE: once with all ${lang} content in proper ${script} script, and once with all ${lang} content romanized (written phonetically in Latin letters) instead. Both versions must be otherwise identical — same English narration, same structure, same punctuation. Only the ${lang} portions differ between the two (script vs. romanized).
+
+Output in EXACTLY this format and nothing else — no preamble, no explanation, no markdown code fences:
+
+<<<SCRIPT>>>
+[full corrected passage, ${lang} portions in ${script} script]
+<<<ROMANIZED>>>
+[the same full corrected passage, ${lang} portions romanized into Latin letters instead]`;
+}
+
+async function fixText(text, apiKey, model, lang){
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + apiKey,
+    },
+    body: JSON.stringify({
+      model: model,
+      max_tokens: 4000,
+      reasoning: { enabled: false },
+      messages: [
+        { role: "system", content: buildSystemPrompt(lang) },
+        { role: "user", content: text }
+      ],
+    })
+  });
+  if(!response.ok){
+    let detail = '';
+    try{ const errJson = await response.json(); detail = (errJson.error && errJson.error.message) || JSON.stringify(errJson); }
+    catch(e){ detail = await response.text().catch(function(){ return ''; }); }
+    if(/reasoning is mandatory/i.test(detail)){
+      throw new Error("This model forces reasoning on and won't let this app turn it off, which is what's eating the output budget. Pick a different model slug (a non-reasoning one, or a smaller/faster variant) and try again.");
+    }
+    throw new Error("API error (" + response.status + "): " + detail.slice(0,300));
+  }
+  const data = await response.json();
+  const choice = data && data.choices && data.choices[0];
+  const message = choice && choice.message;
+  let content = message && message.content;
+  if(Array.isArray(content)){
+    content = content.map(function(c){ return (c && c.text) || ''; }).join('');
+  }
+  if(!content || !content.trim()){
+    const finishReason = choice && choice.finish_reason;
+    const hadReasoning = !!(message && message.reasoning);
+    console.log('Empty content, full response:', data);
+    if(finishReason === 'length' && hadReasoning){
+      throw new Error("Model spent its whole token budget on internal reasoning and never wrote an answer (finish_reason: length). Try a non-reasoning model, or a model slug with lower reasoning effort.");
+    }
+    if(finishReason === 'content_filter'){
+      throw new Error("The model/provider's content filter blocked this output (finish_reason: content_filter). Try a different provider or model on OpenRouter for this text.");
+    }
+    throw new Error("Empty response from model" + (finishReason ? " (finish_reason: " + finishReason + ")" : "") + ". Check the browser console for the full raw response.");
+  }
+  return content;
+}
+
+function parseOutput(raw){
+  const scriptMatch = raw.match(/<<<SCRIPT>>>([\s\S]*?)<<<ROMANIZED>>>/);
+  const romanMatch = raw.match(/<<<ROMANIZED>>>([\s\S]*)$/);
+  if(scriptMatch && romanMatch){
+    return { script: scriptMatch[1].trim(), roman: romanMatch[1].trim(), parsed: true };
+  }
+  return { script: raw.trim(), roman: '', parsed: false };
+}
+
+const fixBtn = document.getElementById('fixBtn');
+const statusEl = document.getElementById('status');
+const inputEl = document.getElementById('input');
+const outputScriptEl = document.getElementById('outputScript');
+const outputRomanEl = document.getElementById('outputRoman');
+const apiKeyEl = document.getElementById('apiKey');
+const modelEl = document.getElementById('model');
+const toggleKeyBtn = document.getElementById('toggleKey');
+const loadKeyBtn = document.getElementById('loadKeyBtn');
+const keyFileEl = document.getElementById('keyFile');
+const langButtons = Array.from(document.querySelectorAll('.lang-btn'));
+const scriptLabel = document.getElementById('scriptLabel');
+
+function setStatus(msg, isError){
+  statusEl.textContent = msg;
+  statusEl.className = 'status' + (isError ? ' error' : '');
+}
+
+function setLang(lang){
+  currentLang = lang;
+  langButtons.forEach(function(btn){ btn.classList.toggle('active', btn.dataset.lang === lang); });
+  const script = scriptName(lang);
+  scriptLabel.textContent = script + ' script';
+  const classByLang = {
+    Bengali: 'script-bn', Hindi: 'script-hi', Arabic: 'script-ar',
+    Russian: 'script-ru', Mandarin: 'script-zh', Japanese: 'script-ja'
+  };
+  outputScriptEl.className = classByLang[lang] || '';
+  persist();
+}
+langButtons.forEach(function(btn){ btn.addEventListener('click', function(){ setLang(btn.dataset.lang); }); });
+
+toggleKeyBtn.addEventListener('click', function(){
+  const isPassword = apiKeyEl.type === 'password';
+  apiKeyEl.type = isPassword ? 'text' : 'password';
+  toggleKeyBtn.textContent = isPassword ? 'hide' : 'show';
+});
+
+loadKeyBtn.addEventListener('click', function(){ keyFileEl.click(); });
+keyFileEl.addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    apiKeyEl.value = (ev.target.result || '').trim();
+    setStatus('Key loaded from file.', false);
+    persist();
+  };
+  reader.onerror = function(){ setStatus('Could not read that file.', true); };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+// Same-device convenience only — this never syncs between separate devices.
+// The .txt file above is the actual cross-device solution.
+async function loadSaved(){
+  try{
+    const savedKey = await window.storage.get('lang-fixer-api-key', false);
+    if(savedKey && savedKey.value) apiKeyEl.value = savedKey.value;
+  }catch(e){}
+  try{
+    const savedModel = await window.storage.get('lang-fixer-model', false);
+    if(savedModel && savedModel.value) modelEl.value = savedModel.value;
+  }catch(e){}
+  try{
+    const savedLang = await window.storage.get('lang-fixer-lang', false);
+    if(savedLang && savedLang.value) setLang(savedLang.value);
+  }catch(e){}
+}
+async function persist(){
+  try{ await window.storage.set('lang-fixer-api-key', apiKeyEl.value, false); }catch(e){}
+  try{ await window.storage.set('lang-fixer-model', modelEl.value, false); }catch(e){}
+  try{ await window.storage.set('lang-fixer-lang', currentLang, false); }catch(e){}
+}
+apiKeyEl.addEventListener('change', persist);
+modelEl.addEventListener('change', persist);
+
+fixBtn.addEventListener('click', async function(){
+  const text = inputEl.value.trim();
+  const key = apiKeyEl.value.trim();
+  const model = modelEl.value.trim();
+
+  if(!key){ setStatus('Enter (or load) your OpenRouter API key first.', true); return; }
+  if(!model){ setStatus('Enter a model slug first.', true); return; }
+  if(!text){ setStatus('Paste some text first.', true); return; }
+
+  fixBtn.disabled = true;
+  setStatus('Correcting ' + currentLang + '...', false);
+  outputScriptEl.value = '';
+  outputRomanEl.value = '';
+
+  try{
+    const raw = await fixText(text, key, model, currentLang);
+    const { script, roman, parsed } = parseOutput(raw);
+    outputScriptEl.value = script;
+    outputRomanEl.value = roman;
+    setStatus(parsed ? 'Done.' : 'Done, but the model didn\'t use the expected format — showing raw output in the script box.', !parsed);
+    persist();
+  }catch(err){
+    setStatus('Failed: ' + err.message, true);
+  }finally{
+    fixBtn.disabled = false;
+  }
+});
+
+function wireCopy(btnId, sourceEl){
+  document.getElementById(btnId).addEventListener('click', async function(){
+    if(!sourceEl.value){ setStatus('Nothing to copy yet.', true); return; }
+    sourceEl.select();
+    try{
+      await navigator.clipboard.writeText(sourceEl.value);
+      setStatus('Copied.', false);
+    }catch(e){
+      try{ document.execCommand('copy'); setStatus('Copied.', false); }
+      catch(e2){ setStatus('Copy failed — select and copy manually.', true); }
+    }
+  });
+}
+wireCopy('copyScriptBtn', outputScriptEl);
+wireCopy('copyRomanBtn', outputRomanEl);
+
+loadSaved();
+
+})();
+</script>
+</body>
+</html>
