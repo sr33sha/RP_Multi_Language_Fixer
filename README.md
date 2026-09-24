@@ -7,7 +7,7 @@ Use a high-intelligence model just to fix the non english sections, costs less t
 
 Use your own api key which you can link to HTML through a .txt file. Choose any Openrouter model and bam! All done.
 
-Comes with both native script and roamnized versions.
+Comes with both native script and romanized versions.
 
 Current languages include: Bengali, Hindi, Arabic, Spanish, Hungarian, Russian, Mandarin and Chinese.
 
